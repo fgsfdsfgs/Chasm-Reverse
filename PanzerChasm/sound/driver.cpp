@@ -160,6 +160,7 @@ void Driver::FillAudioBuffer( SampleType* const buffer, const unsigned int sampl
 				std::min(
 					sample_count - channel_dst_samples_processed,
 					max_dst_sample_for_src_sample( can_read_src_samples ) );
+			const unsigned int chans= channel.src_sound_data->channel_count_;
 
 			switch( channel.src_sound_data->data_type_ )
 			{
@@ -187,28 +188,55 @@ void Driver::FillAudioBuffer( SampleType* const buffer, const unsigned int sampl
 				break;
 
 			case ISoundData::DataType::Signed8:
-			{
-				const char* const src=
-					static_cast<const char*>( channel.src_sound_data->data_ ) + channel.position_samples;
-
-				for( unsigned int i= 0u; i < dst_samples_to_write; i++ )
 				{
-					const unsigned int sample_coord_f= i * freq_ratio_f;
-					const unsigned int sample_coord= sample_coord_f >> g_frac_bits;
-					const unsigned int part= sample_coord_f & ( g_frac - 1u );
-					PC_ASSERT( sample_coord + 1u < channel.src_sound_data->sample_count_ - channel.position_samples );
+					const char* const src=
+						static_cast<const char*>( channel.src_sound_data->data_ ) + channel.position_samples;
 
-					// Value in range [ -128 * g_frac; 127 * g_frac ]
-					const int signed_sample=
-						int( src[ sample_coord ] * ( g_frac - part ) ) + int( src[ sample_coord + 1u ] * part );
+					for( unsigned int i= 0u; i < dst_samples_to_write; i++ )
+					{
+						const unsigned int sample_coord_f= i * freq_ratio_f;
+						const unsigned int sample_coord= sample_coord_f >> g_frac_bits;
+						const unsigned int part= sample_coord_f & ( g_frac - 1u );
+						PC_ASSERT( sample_coord + 1u < channel.src_sound_data->sample_count_ - channel.position_samples );
 
-					dst[ i * 2u      ]+= ( signed_sample * volume[0] ) >> ( int(g_frac_bits) + g_volume_bits - 8 );
-					dst[ i * 2u + 1u ]+= ( signed_sample * volume[1] ) >> ( int(g_frac_bits) + g_volume_bits - 8 );
+						// Value in range [ -128 * g_frac; 127 * g_frac ]
+						const int signed_sample=
+							int( src[ sample_coord ] * ( g_frac - part ) ) + int( src[ sample_coord + 1u ] * part );
+
+						dst[ i * 2u      ]+= ( signed_sample * volume[0] ) >> ( int(g_frac_bits) + g_volume_bits - 8 );
+						dst[ i * 2u + 1u ]+= ( signed_sample * volume[1] ) >> ( int(g_frac_bits) + g_volume_bits - 8 );
+					}
 				}
-			}
-			break;
+				break;
 
 			case ISoundData::DataType::Signed16:
+				{
+					const Sint16* const src=
+						static_cast<const Sint16*>( channel.src_sound_data->data_ ) + channel.position_samples * chans;
+
+					PC_ASSERT( chans == 2u ); // This is only used for the CD tracks for now, and they're in stereo.
+
+					for( unsigned int i= 0u; i < dst_samples_to_write; i++ )
+					{
+						const unsigned int sample_coord_f= i * freq_ratio_f;
+						const unsigned int sample_coord= sample_coord_f >> g_frac_bits;
+						const unsigned int part= sample_coord_f & ( g_frac - 1u );
+						PC_ASSERT( sample_coord + 1u < channel.src_sound_data->sample_count_ - channel.position_samples );
+
+						const unsigned int sample_pos_l= sample_coord * 2u;
+						const unsigned int sample_pos_r= sample_pos_l + 2u;
+
+						const int signed_sample_l=
+							int( src[ sample_pos_l+0u ] * ( g_frac - part ) ) + int( src[ sample_pos_r+0u ] * part );
+						const int signed_sample_r=
+							int( src[ sample_pos_l+1u ] * ( g_frac - part ) ) + int( src[ sample_pos_r+1u ] * part );
+
+						dst[ i * 2u      ]+= ( signed_sample_l * volume[0] ) >> ( int(g_frac_bits) + g_volume_bits );
+						dst[ i * 2u + 1u ]+= ( signed_sample_r * volume[1] ) >> ( int(g_frac_bits) + g_volume_bits );
+					}
+				}
+				break;
+
 			case ISoundData::DataType::Unsigned16:
 				PC_ASSERT( false ); // TODO
 				break;

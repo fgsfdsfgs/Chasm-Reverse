@@ -50,6 +50,8 @@ public:
 	// TODO - make non-head-relaive, create position source.
 	void PlayOneTimeSound( const char* sound_data_file );
 
+	void PlayCdTrack( unsigned int track );
+
 private:
 	struct Source
 	{
@@ -71,6 +73,7 @@ private:
 	void UpdateAmbientSoundState();
 	void UpdateObjectSoundState();
 	void UpdateOneTimeSoundSource();
+	void UpdateMusicSource();
 	void CalculateSourcesVolume();
 	void ForceStopAllChannels();
 
@@ -111,6 +114,9 @@ private:
 
 	ISoundDataConstPtr one_time_sound_source_data_;
 	Source* one_time_sound_source_= nullptr;
+
+	ISoundDataConstPtr music_source_data_;
+	Source* music_source_= nullptr;
 };
 
 } // namespace Sound

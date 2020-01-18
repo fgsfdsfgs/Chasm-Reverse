@@ -271,6 +271,7 @@ public:
 	char map_name[ c_max_map_name_size ];
 	char sky_texture_name[ c_max_file_path_size ];
 
+	unsigned int map_cdtrack;
 	GameResources::SoundDescription map_sounds[ c_max_map_sounds ];
 	GameResources::SoundDescription ambients[ c_max_map_ambients ];
 
@@ -322,6 +323,7 @@ private:
 
 	void LoadMapName( const Vfs::FileContent& resource_file, char* out_map_name );
 	void LoadSkyTextureName( const Vfs::FileContent& resource_file, MapData& map_data );
+	void LoadCdTrackNumber( const Vfs::FileContent& resource_file, MapData& map_data );
 	void LoadModelsDescription( const Vfs::FileContent& resource_file, MapData& map_data );
 	void LoadWallsTexturesDescription( const Vfs::FileContent& resource_file, MapData& map_data );
 

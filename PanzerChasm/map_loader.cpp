@@ -235,6 +235,7 @@ MapDataConstPtr MapLoader::LoadMap( const unsigned int map_number )
 	// Scan resource file
 	LoadMapName( resource_file_content, result->map_name );
 	LoadSkyTextureName( resource_file_content, *result );
+	LoadCdTrackNumber( resource_file_content, *result );
 	LoadModelsDescription( resource_file_content, *result );
 	LoadWallsTexturesDescription( resource_file_content, *result );
 	LoadSoundsDescriptionFromMapResourcesFile( resource_file_content, result->map_sounds, MapData::c_max_map_sounds );
@@ -549,6 +550,23 @@ void MapLoader::LoadSkyTextureName( const Vfs::FileContent& resource_file, MapDa
 		*dst= *s; dst++; s++;
 	}
 	*dst= '\0';
+}
+
+void MapLoader::LoadCdTrackNumber( const Vfs::FileContent& resource_file, MapData& map_data )
+{
+	map_data.map_cdtrack= 0;
+
+	const char* s= GetSubstring( reinterpret_cast<const char*>( resource_file.data() ), "#cdtrack" );
+	s+= std::strlen( "#cdtrack" );
+
+	while( std::isspace(*s) ) s++;
+
+	// =
+	s++;
+
+	while( std::isspace(*s) )s++;
+
+	map_data.map_cdtrack= std::atoi(s);
 }
 
 void MapLoader::LoadModelsDescription( const Vfs::FileContent& resource_file, MapData& map_data )

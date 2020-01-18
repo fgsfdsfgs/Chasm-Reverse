@@ -27,7 +27,7 @@ public:
 	inline unsigned int GetDataSize() const
 	{
 		return
-			sample_count_ *
+			sample_count_ * channel_count_ *
 			( ( data_type_ == DataType::Signed8 || data_type_ == DataType::Unsigned8 ) ? 1u : 2u );
 	}
 
@@ -37,6 +37,7 @@ public:
 
 	const void* data_;
 	unsigned int sample_count_;
+	unsigned int channel_count_;
 };
 
 typedef std::unique_ptr<ISoundData> ISoundDataConstPtr;
@@ -44,6 +45,7 @@ typedef std::unique_ptr<ISoundData> ISoundDataConstPtr;
 
 ISoundDataConstPtr LoadSound( const char* file_path, Vfs& vfs );
 ISoundDataConstPtr LoadRawMonsterSound( const Vfs::FileContent& raw_sound_data );
+ISoundDataConstPtr LoadCdTrack( unsigned int track );
 
 } // namespace Sound
 

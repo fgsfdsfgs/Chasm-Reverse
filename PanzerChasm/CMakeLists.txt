@@ -1,10 +1,21 @@
 
 include(CheckCXXSourceCompiles)
 
-set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR})
-find_package(SDL2 REQUIRED)
+set(CMAKE_MODULE_PATH ../cmake)
 
-include_directories(${SDL2_INCLUDE_DIR} ${CMAKE_CURRENT_SOURCE_DIR} ../panzer_ogl_lib)
+find_package(SDL2 REQUIRED)
+find_package(OGG REQUIRED)
+find_package(Vorbis REQUIRED)
+find_package(VorbisFile REQUIRED)
+
+include_directories(
+	${SDL2_INCLUDE_DIR}
+	${OGG_INCLUDE_DIR}
+	${VORBIS_INCLUDE_DIR}
+	${VORBISFILE_INCLUDE_DIR}
+	${CMAKE_CURRENT_SOURCE_DIR}
+	../panzer_ogl_lib
+)
 
 # Source and header files
 
@@ -233,6 +244,9 @@ endif()
 
 set(LIBS
 	${SDL2_LIBRARY}
+	${VORBISFILE_LIBRARY}
+	${VORBIS_LIBRARY}
+	${OGG_LIBRARY}
 )
 
 if(WIN32)

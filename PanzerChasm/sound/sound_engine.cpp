@@ -85,6 +85,7 @@ void SoundEngine::Tick()
 	UpdateAmbientSoundState();
 	UpdateObjectSoundState();
 	UpdateOneTimeSoundSource();
+	UpdateMusicSource();
 	CalculateSourcesVolume();
 
 	driver_.LockChannels();
@@ -111,6 +112,8 @@ void SoundEngine::Tick()
 
 			if( &source == one_time_sound_source_ )
 				channel.src_sound_data= one_time_sound_source_data_.get();
+			else if( &source == music_source_ )
+				channel.src_sound_data= music_source_data_.get();
 			else
 				channel.src_sound_data= sounds_[ source.sound_id ].get();
 
@@ -188,6 +191,8 @@ void SoundEngine::SetMap( const MapDataConstPtr& map_data )
 
 				sound= LoadSound( sound_description.file_name, *game_resources_->vfs );
 			}
+
+			PlayCdTrack( map_data->map_cdtrack );
 		}
 	}
 
@@ -353,6 +358,44 @@ void SoundEngine::PlayOneTimeSound( const char* const sound_data_file )
 	one_time_sound_source_->pos_samples= 0u;
 }
 
+void SoundEngine::PlayCdTrack( unsigned int track )
+{
+	ISoundDataConstPtr sound_data= LoadCdTrack( track );
+	if( sound_data == nullptr )
+		return;
+
+	if( music_source_ != nullptr ) // Free and kill old sound.
+		music_source_->is_free= true;
+
+	music_source_= GetFreeSource();
+	if( music_source_ == nullptr )
+		return;
+
+	{ // Stop old music
+		driver_.LockChannels();
+		Channels& channels= driver_.GetChannels();
+		for( unsigned int i= 0u; i < Channel::c_max_channels; i++ )
+		{
+			if( &sources_[i] == music_source_ )
+			{
+				channels[i].is_active= false;
+				channels[i].src_sound_data= nullptr;
+				break;
+			}
+		}
+		driver_.UnlockChannels();
+	}
+
+	music_source_data_= std::move(sound_data);
+
+	music_source_->is_free= false;
+	music_source_->is_head_relative= true;
+	music_source_->looped= true;
+	music_source_->monster_id= 0u;
+	music_source_->sound_id= 0u;
+	music_source_->pos_samples= 0u;
+}
+
 SoundEngine::Source* SoundEngine::GetFreeSource()
 {
 	for( Source& s : sources_ )
@@ -456,8 +499,31 @@ void SoundEngine::UpdateOneTimeSoundSource()
 	}
 }
 
+void SoundEngine::UpdateMusicSource()
+{
+	if( music_source_ != nullptr )
+	{
+		PC_ASSERT( music_source_data_ != nullptr );
+		if( music_source_->is_free )
+		{
+			// Free expired music source.
+			music_source_data_= nullptr;
+			music_source_= nullptr;
+		}
+	}
+}
+
 void SoundEngine::CalculateSourcesVolume()
 {
+	// Read master and music volumes.
+	float master_volume= settings_.GetFloat( SettingsKeys::fx_volume, 0.5f );
+	master_volume= std::max( 0.0f, std::min( master_volume, 1.0f ) );
+	settings_.SetSetting( SettingsKeys::fx_volume, master_volume );
+
+	float mus_volume= settings_.GetFloat( SettingsKeys::cd_volume, 0.5f );
+	mus_volume= std::max( 0.0f, std::min( mus_volume, 1.0f ) );
+	settings_.SetSetting( SettingsKeys::cd_volume, mus_volume );
+
 	for( Source& source : sources_ )
 	{
 		if( source.is_free )
@@ -499,6 +565,12 @@ void SoundEngine::CalculateSourcesVolume()
 				source.volume[j]= std::min( std::max( channel_volume, 0.0f ), 1.0f );
 			}
 		}
+
+		if( &source != music_source_ )
+		{
+			source.volume[0]*= master_volume;
+			source.volume[1]*= master_volume;
+		}
 	}
 
 	if( ambient_sound_source_ != nullptr )
@@ -518,18 +590,10 @@ void SoundEngine::CalculateSourcesVolume()
 	if( one_time_sound_source_ != nullptr )
 		one_time_sound_source_->volume[0]= one_time_sound_source_->volume[1]= 1.0f;
 
-	// Read master volume.
-	float master_volume= settings_.GetFloat( SettingsKeys::fx_volume, 0.5f );
-	master_volume= std::max( 0.0f, std::min( master_volume, 1.0f ) );
-	settings_.SetSetting( SettingsKeys::fx_volume, master_volume );
-
-	// Apply master volume.
-	for( Source& source : sources_ )
+	if( music_source_ != nullptr )
 	{
-		if( source.is_free )
-			continue;
-		source.volume[0]*= master_volume;
-		source.volume[1]*= master_volume;
+		music_source_->volume[0]*= mus_volume;
+		music_source_->volume[1]*= mus_volume;
 	}
 }
 
@@ -540,6 +604,9 @@ void SoundEngine::ForceStopAllChannels()
 
 	one_time_sound_source_data_= nullptr;
 	one_time_sound_source_= nullptr;
+
+	music_source_data_= nullptr;
+	music_source_= nullptr;
 
 	// Force stop all channels.
 	// This need, because driver life is longer, than life of sound data (global or map).
