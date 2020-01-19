@@ -191,7 +191,7 @@ private:
 	HostCommands& host_commands_;
 	int current_row_= 0;
 
-	static constexpr unsigned int c_value_max_size= 20u;
+	static constexpr unsigned int c_value_max_size= 50u;
 	char values_[2][c_value_max_size];
 };
 
@@ -211,7 +211,7 @@ void NetworkConnectMenu::Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw 
 	const Size2 viewport_size= menu_drawer.GetViewportSize();
 
 	const int scale= int( menu_drawer.GetMenuScale() );
-	const unsigned int size[2]= { 280u, text_draw.GetLineHeight() * 5u };
+	const unsigned int size[2]= { 320u, text_draw.GetLineHeight() * 3u };
 
 	const int x= int(viewport_size.xy[0] >> 1u) - int( ( scale * size[0] ) >> 1 );
 	const int y= int(viewport_size.xy[1] >> 1u) - int( ( scale * size[1] ) >> 1 );

@@ -7,6 +7,7 @@
 #define NOMINMAX
 #endif // _MSC_VER
 #include <winsock2.h>
+#include <ws2tcpip.h>
 #else
 
 #include <unistd.h>
@@ -81,6 +82,53 @@ static bool IsSocketReady( const SOCKET& socket )
 
 bool InetAddress::Parse( const std::string& address_string, InetAddress& out_address )
 {
+#ifdef _WIN32
+	struct addrinfo hints;
+	std::memset( &hints, 0, sizeof( hints ) );
+	hints.ai_family= AF_INET;
+	hints.ai_socktype= SOCK_STREAM;
+	hints.ai_protocol= IPPROTO_TCP;
+
+	char addr[ 256 ];
+	if( ::strncpy_s( addr, sizeof( addr ), address_string.c_str(), _TRUNCATE ) != 0 )
+		return false; // too long
+
+	char* portstr= std::strrchr( addr, ':' );
+	if( portstr )
+	{
+		*portstr= '\0';
+		if( !std::isdigit( *++portstr ) )
+			return false; // must be something like `ass.com:`
+	}
+
+	struct addrinfo* result;
+	if( ::getaddrinfo( addr, portstr, &hints, &result ) != 0 )
+	{
+		Log::Warning( FUNC_NAME, " error: ", ::WSAGetLastError() );
+		return false;
+	}
+
+	if( result == nullptr )
+	{
+		Log::Warning( FUNC_NAME, " error: could not resolve ", address_string );
+		return false;
+	}
+
+	if( result->ai_family != AF_INET )
+	{
+		Log::Warning( FUNC_NAME, " error: could not resolve ", address_string );
+		::freeaddrinfo( result );
+		return false;
+	}
+
+	struct sockaddr_in *ipaddr= (struct sockaddr_in*)result->ai_addr;
+	std::memcpy( &out_address.ip_address, &ipaddr->sin_addr, 4u );
+	// InetAddress expects these to be in host byteorder
+	out_address.port= ::ntohs( ipaddr->sin_port );
+	out_address.ip_address= ::ntohl( out_address.ip_address );
+
+	::freeaddrinfo( result );
+#else
 	unsigned char addr[4];
 
 	const char* str= address_string.c_str();
@@ -114,6 +162,7 @@ bool InetAddress::Parse( const std::string& address_string, InetAddress& out_add
 		if( !( port > 0 && port < 65536 ) ) return false;
 		out_address.port= port;
 	}
+#endif
 
 	return true;
 }

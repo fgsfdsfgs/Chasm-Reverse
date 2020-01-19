@@ -296,6 +296,9 @@ void Host::NewGame( const DifficultyType difficulty )
 
 void Host::ConnectToServer( const char* server_address )
 {
+	EnsureClient();
+	EnsureNet();
+
 	InetAddress address;
 	if( !InetAddress::Parse( server_address , address ) )
 	{
@@ -307,9 +310,6 @@ void Host::ConnectToServer( const char* server_address )
 		address.port= Net::c_default_server_tcp_port;
 
 	Log::User( "Connecting to ", address.ToString(), "." );
-
-	EnsureClient();
-	EnsureNet();
 
 	ClearBeforeGameStart();
 
