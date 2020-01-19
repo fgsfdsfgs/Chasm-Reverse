@@ -194,6 +194,7 @@ private:
 	const GameResourcesConstPtr game_resources_;
 	const RenderingContextGL rendering_context_;
 	const bool filter_textures_;
+	const bool filter_lightmaps_;
 
 	MapDataConstPtr current_map_data_;
 

@@ -59,9 +59,11 @@ static void CreateFullbrightLightmapDummy( r_Texture& texture, const bool use_hd
 MapLight::MapLight(
 	const GameResourcesConstPtr& game_resources,
 	const RenderingContextGL& rendering_context,
-	const bool use_hd_dynamic_lightmap )
+	bool use_hd_dynamic_lightmap,
+	bool filter_lightmaps )
 	: game_resources_(game_resources)
 	, use_hd_dynamic_lightmap_(use_hd_dynamic_lightmap)
+	, lightmap_filter_(filter_lightmaps ? r_Texture::Filtration::Linear : r_Texture::Filtration::Nearest)
 {
 	PC_ASSERT( game_resources_ != nullptr );
 
@@ -77,20 +79,24 @@ MapLight::MapLight(
 		r_Framebuffer(
 			{ r_Texture::PixelFormat::RGBA8 }, r_Texture::PixelFormat::Unknown,
 			c_hd_lightmap_scale * MapData::c_lightmap_size, c_hd_lightmap_scale * MapData::c_lightmap_size );
+	base_floor_lightmap_.GetTextures().front().SetFiltration( lightmap_filter_, lightmap_filter_ );
 	final_floor_lightmap_=
 		r_Framebuffer(
 			{ r_Texture::PixelFormat::RGBA8 }, r_Texture::PixelFormat::Unknown,
 			c_hd_lightmap_scale * MapData::c_lightmap_size, c_hd_lightmap_scale * MapData::c_lightmap_size );
+	final_floor_lightmap_.GetTextures().front().SetFiltration( lightmap_filter_, lightmap_filter_ );
 
 	// Walls
 	base_walls_lightmap_=
 		r_Framebuffer(
 			{ r_Texture::PixelFormat::R8 }, r_Texture::PixelFormat::Unknown,
 			g_walls_lightmap_atlas_size.Width(), g_walls_lightmap_atlas_size.Height() );
+	base_walls_lightmap_.GetTextures().front().SetFiltration( lightmap_filter_, lightmap_filter_ );
 	final_walls_lightmap_=
 		r_Framebuffer(
 			{ r_Texture::PixelFormat::R8 }, r_Texture::PixelFormat::Unknown,
 			g_walls_lightmap_atlas_size.Width(), g_walls_lightmap_atlas_size.Height() );
+	final_walls_lightmap_.GetTextures().front().SetFiltration( lightmap_filter_, lightmap_filter_ );
 
 	// Shadowmap
 	shadowmap_=
@@ -155,7 +161,7 @@ void MapLight::SetMap( const MapDataConstPtr& map_data )
 				r_Texture::PixelFormat::R8,
 				MapData::c_lightmap_size, MapData::c_lightmap_size,
 				map_data->lightmap );
-		static_lightmap_.SetFiltration( r_Texture::Filtration::Nearest, r_Texture::Filtration::Nearest );
+		static_lightmap_.SetFiltration( lightmap_filter_, lightmap_filter_ );
 
 		return;
 	}

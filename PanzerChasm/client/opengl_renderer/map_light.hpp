@@ -19,7 +19,8 @@ public:
 	MapLight(
 		const GameResourcesConstPtr& game_resources,
 		const RenderingContextGL& rendering_context,
-		bool use_hd_dynamic_lightmap );
+		bool use_hd_dynamic_lightmap,
+		bool filter_lightmaps );
 	~MapLight();
 
 	void SetMap( const MapDataConstPtr& map_data );
@@ -81,6 +82,8 @@ private:
 
 	r_GLSLProgram copy_shader_;
 	r_GLSLProgram shadowmap_shader_;
+
+	r_Texture::Filtration lightmap_filter_;
 
 	MapDataConstPtr map_data_;
 

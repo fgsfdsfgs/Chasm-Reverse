@@ -219,8 +219,9 @@ MapDrawerGL::MapDrawerGL(
 	, game_resources_(game_resources)
 	, rendering_context_(rendering_context)
 	, filter_textures_( settings.GetOrSetBool( SettingsKeys::opengl_textures_filtering, false ) )
+	, filter_lightmaps_( settings.GetOrSetBool( SettingsKeys::opengl_lightmaps_filtering, true ) )
 	, use_hd_dynamic_lightmap_( settings.GetOrSetBool( SettingsKeys::opengl_dynamic_lighting, false ) )
-	, map_light_( game_resources, rendering_context, use_hd_dynamic_lightmap_ )
+	, map_light_( game_resources, rendering_context, use_hd_dynamic_lightmap_, filter_lightmaps_ )
 {
 	PC_ASSERT( game_resources_ != nullptr );
 
