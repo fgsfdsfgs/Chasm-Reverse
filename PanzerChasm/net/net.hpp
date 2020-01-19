@@ -22,16 +22,10 @@ public:
 	static constexpr uint16_t c_default_server_tcp_port= 6666u;
 	static constexpr uint16_t c_default_server_udp_base_port= 8000u;
 
-	static constexpr uint16_t c_default_client_tcp_port= 6667u;
-	static constexpr uint16_t c_default_client_udp_port= 9000u;
-
 	Net();
 	~Net();
 
-	IConnectionPtr ConnectToServer(
-		const InetAddress& address,
-		uint16_t in_udp_port= c_default_client_tcp_port,
-		uint16_t in_tcp_port= c_default_client_udp_port );
+	IConnectionPtr ConnectToServer( const InetAddress& address );
 
 	IConnectionsListenerPtr CreateServerListener(
 		uint16_t tcp_port= c_default_server_tcp_port,

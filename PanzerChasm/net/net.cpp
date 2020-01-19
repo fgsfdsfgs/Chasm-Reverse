@@ -464,6 +464,9 @@ public:
 			return;
 		}
 
+		const int nodelay= 1;
+		::setsockopt( listen_socket_, IPPROTO_TCP, TCP_NODELAY, (const char*)&nodelay, sizeof( nodelay ) );
+
 		sockaddr_in listen_socket_address;
 		std::memset( &listen_socket_address, 0, sizeof(listen_socket_address) );
 		listen_socket_address.sin_family = AF_INET;
@@ -549,6 +552,9 @@ public: // IConnectionsListener
 				Log::Warning( "Can not accept client. Error code: ", ::WSAGetLastError() );
 				return nullptr;
 			}
+
+			const int nodelay= 1;
+			::setsockopt( client_tcp_socket, IPPROTO_TCP, TCP_NODELAY, (const char*)&nodelay, sizeof( nodelay ) );
 
 			const IpAddress client_ip_address= client_address.sin_addr.S_un.S_addr;
 #else
@@ -638,10 +644,7 @@ Net::~Net()
 #endif
 }
 
-IConnectionPtr Net::ConnectToServer(
-	const InetAddress& address,
-	const uint16_t in_udp_port,
-	const uint16_t in_tcp_port )
+IConnectionPtr Net::ConnectToServer( const InetAddress& address )
 {
 #ifdef _WIN32
 	// Create and open TCP socket.
@@ -652,16 +655,8 @@ IConnectionPtr Net::ConnectToServer(
 		return nullptr;
 	}
 
-	sockaddr_in tcp_address;
-	tcp_address.sin_family= AF_INET;
-	tcp_address.sin_addr.s_addr= INADDR_ANY;
-	tcp_address.sin_port= ::htons( in_tcp_port );
-	if( ::bind( tcp_socket, (sockaddr*) &tcp_address, sizeof(tcp_address) ) != 0 )
-	{
-		Log::Warning( FUNC_NAME, " can not bind tcp socket. Error code: ", ::WSAGetLastError() );
-		::closesocket( tcp_socket );
-		return nullptr;
-	}
+	const int nodelay= 1;
+	::setsockopt( tcp_socket, IPPROTO_TCP, TCP_NODELAY, (const char*)&nodelay, sizeof( nodelay ) );
 
 	// Createe and open UDP socket.
 	const SOCKET udp_socket= ::socket( AF_INET, SOCK_DGRAM, 0 );
@@ -675,7 +670,7 @@ IConnectionPtr Net::ConnectToServer(
 	sockaddr_in udp_address;
 	udp_address.sin_family= AF_INET;
 	udp_address.sin_addr.s_addr= INADDR_ANY;
-	udp_address.sin_port= ::htons( in_udp_port );
+	udp_address.sin_port= 0;
 	if( ::bind( udp_socket, (sockaddr*) &udp_address, sizeof(udp_address) ) != 0 )
 	{
 		Log::Warning( FUNC_NAME, " can not bind udp socket. Error code: ", ::WSAGetLastError() );
@@ -732,17 +727,6 @@ IConnectionPtr Net::ConnectToServer(
 	if( tcp_socket == -1 )
 	{
 		Log::Warning( FUNC_NAME, " can not create tcp socket. Error code: ", errno );
-		return nullptr;
-	}
-
-	sockaddr_in tcp_address;
-	tcp_address.sin_family= AF_INET;
-	tcp_address.sin_addr.s_addr= INADDR_ANY;
-	tcp_address.sin_port= htons( in_tcp_port );
-	if( ::bind( tcp_socket, (sockaddr*) &tcp_address, sizeof(tcp_address) ) != 0 )
-	{
-		Log::Warning( FUNC_NAME, " can not bind tcp socket. Error code: ", errno );
-		::close( tcp_socket );
 		return nullptr;
 	}
 

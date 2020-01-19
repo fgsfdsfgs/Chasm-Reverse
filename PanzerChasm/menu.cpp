@@ -192,7 +192,7 @@ private:
 	int current_row_= 0;
 
 	static constexpr unsigned int c_value_max_size= 20u;
-	char values_[4][c_value_max_size];
+	char values_[2][c_value_max_size];
 };
 
 NetworkConnectMenu::NetworkConnectMenu( MenuBase* parent, const Sound::SoundEnginePtr& sound_engine, HostCommands& host_commands )
@@ -201,8 +201,6 @@ NetworkConnectMenu::NetworkConnectMenu( MenuBase* parent, const Sound::SoundEngi
 {
 	std::snprintf( values_[0], c_value_max_size, "%s", "127.0.0.1" );
 	std::snprintf( values_[1], c_value_max_size, "%d", Net::c_default_server_tcp_port );
-	std::snprintf( values_[2], c_value_max_size, "%d", Net::c_default_client_tcp_port );
-	std::snprintf( values_[3], c_value_max_size, "%d", Net::c_default_client_udp_port );
 }
 
 NetworkConnectMenu::~NetworkConnectMenu()
@@ -227,11 +225,11 @@ void NetworkConnectMenu::Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw 
 		scale,
 		ITextDrawer::FontColor::White, ITextDrawer::Alignment::Center );
 
-	static const char* const texts[4u]
+	static const char* const texts[2u]
 	{
-		"served ip address:", "server tcp port:", "client tcp port:", "client udp port:"
+		"server address:", "server tcp port:"
 	};
-	for( unsigned int i= 0u; i < 4u; i++ )
+	for( unsigned int i= 0u; i < 2u; i++ )
 	{
 		const bool active= int(i) == current_row_ ;
 		const int row_y= y + scale * int( i * text_draw.GetLineHeight() );
@@ -255,10 +253,10 @@ void NetworkConnectMenu::Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw 
 	}
 
 	text_draw.Print(
-		int(viewport_size.xy[0] >> 1u), y + scale * int( 4u * text_draw.GetLineHeight() ),
+		int(viewport_size.xy[0] >> 1u), y + scale * int( 2u * text_draw.GetLineHeight() ),
 		"connect",
 		scale,
-		current_row_ == 4 ? ITextDrawer::FontColor::Golden : ITextDrawer::FontColor::White,
+		current_row_ == 2 ? ITextDrawer::FontColor::Golden : ITextDrawer::FontColor::White,
 		ITextDrawer::Alignment::Center );
 }
 
@@ -270,38 +268,36 @@ MenuBase* NetworkConnectMenu::ProcessEvent( const SystemEvent& event )
 		if( event.event.key.key_code == KeyCode::Up )
 		{
 			PlayMenuSound( Sound::SoundId::MenuChange );
-			current_row_= ( current_row_ - 1 + 5 ) % 5;
+			current_row_= ( current_row_ - 1 + 3 ) % 3;
 		}
 
 		if( event.event.key.key_code == KeyCode::Down )
 		{
 			PlayMenuSound( Sound::SoundId::MenuChange );
-			current_row_= ( current_row_ + 1 + 5 ) % 5;
+			current_row_= ( current_row_ + 1 + 3 ) % 3;
 		}
 
 		if( event.event.key.key_code == KeyCode::Backspace &&
-			current_row_ < 4 )
+			current_row_ < 2 )
 		{
 			const unsigned int l= std::strlen( values_[ current_row_ ] );
 			if( l > 0u )
 				values_[ current_row_ ][ l - 1u ]= 0u;
 		}
 
-		if( event.event.key.key_code == KeyCode::Enter && current_row_ == 4 )
+		if( event.event.key.key_code == KeyCode::Enter && current_row_ == 2 )
 		{
 			PlayMenuSound( Sound::SoundId::MenuSelect );
 
 			const std::string full_address_str= std::string( values_[0] ) + ":" + values_[1];
-			host_commands_.ConnectToServer(
-				full_address_str.c_str(),
-				std::atoi( values_[2] ), std::atoi( values_[3] ) );
+			host_commands_.ConnectToServer( full_address_str.c_str() );
 
 			return nullptr;
 		}
 	}
 
 	if( event.type == SystemEvent::Type::CharInput &&
-		current_row_ < 4 )
+		current_row_ < 2 )
 	{
 		const unsigned int l= std::strlen( values_[ current_row_ ] );
 		if( l < c_value_max_size - 1u )

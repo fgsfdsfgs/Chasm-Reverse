@@ -260,7 +260,7 @@ bool Host::Loop()
 	// Try sleep just a bit, if we run too fast.
 	const Time tick_end_time= Time::CurrentTime();
 	const double tick_duration_ms= ( tick_end_time - tick_start_time ).ToSeconds() * 1000.0f;
-	const float c_min_acceptable_tick_duration_ms= 5.0f;
+	const float c_min_acceptable_tick_duration_ms= is_single_player_ ? 5.0f : (1000.0f / 59.0f);
 	if( tick_duration_ms < 0.9f * c_min_acceptable_tick_duration_ms )
 		SDL_Delay( static_cast<Uint32>( std::max( c_min_acceptable_tick_duration_ms - tick_duration_ms, 1.0 ) ) );
 
@@ -294,10 +294,7 @@ void Host::NewGame( const DifficultyType difficulty )
 	DoRunLevel( 0u, difficulty );
 }
 
-void Host::ConnectToServer(
-	const char* server_address,
-	const uint16_t client_tcp_port,
-	const uint16_t client_udp_port )
+void Host::ConnectToServer( const char* server_address )
 {
 	InetAddress address;
 	if( !InetAddress::Parse( server_address , address ) )
@@ -316,7 +313,7 @@ void Host::ConnectToServer(
 
 	ClearBeforeGameStart();
 
-	auto connection= net_->ConnectToServer( address, client_tcp_port, client_udp_port );
+	auto connection= net_->ConnectToServer( address );
 	if( connection == nullptr )
 	{
 		Log::User( "Connection failed." );
@@ -453,7 +450,7 @@ void Host::ConnectCommand( const CommandsArguments& args )
 		return;
 	}
 
-	ConnectToServer( args[0].c_str(), Net::c_default_client_tcp_port, Net::c_default_client_udp_port );
+	ConnectToServer( args[0].c_str() );
 }
 
 void Host::DisconnectCommand()
