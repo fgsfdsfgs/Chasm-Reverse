@@ -19,17 +19,17 @@ void main()
 	float normal_xy_square_length= dot( f_normal.xy, f_normal.xy );
 
 	// Shift fetch position towards normal. This is hack for some map models.
-	vec2 lightmap_fetch_coord= f_lightmap_coord + f_normal.xy / ( 64.0 * 7.9 );
+	vec2 lightmap_fetch_coord= f_lightmap_coord;
 	vec4 lightmap_value= texture( lightmap, lightmap_fetch_coord );
 	float light_for_flat_surface= 0.5 * length( lightmap_value );
 
 	float directional_light=
-		max( 0.0, +lightmap_value.x * f_normal.x * normal_xy_square_length ) +
-		max( 0.0, -lightmap_value.y * f_normal.x * normal_xy_square_length ) +
-		max( 0.0, +lightmap_value.z * f_normal.y * normal_xy_square_length ) +
-		max( 0.0, -lightmap_value.w * f_normal.y * normal_xy_square_length ) +
-		f_normal.z * f_normal.z * light_for_flat_surface;
+		max( 0.0, +lightmap_value.x ) +
+		max( 0.0, -lightmap_value.y ) +
+		max( 0.0, +lightmap_value.z ) +
+		max( 0.0, -lightmap_value.w ) +
+		light_for_flat_surface;
 
-	float light= c_light_scale * directional_light;
+	float light= c_light_scale * 0.5 * directional_light;
 	color= vec4( light * c.xyz, 0.25 );
 }

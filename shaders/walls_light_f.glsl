@@ -13,7 +13,7 @@ out vec4 color;
 
 void main()
 {
-	vec2 r= light_pos - f_world_coord;
+	vec2 r= light_pos + f_normal * 0.5 - f_world_coord;
 	vec2 normalized_dir_to_light= normalize( r );
 	float distance_to_light= distance( light_pos, f_world_coord );
 
