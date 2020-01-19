@@ -256,13 +256,15 @@ bool Host::Loop()
 		system_window_->EndFrame();
 	}
 
-
-	// Try sleep just a bit, if we run too fast.
 	const Time tick_end_time= Time::CurrentTime();
 	const double tick_duration_ms= ( tick_end_time - tick_start_time ).ToSeconds() * 1000.0f;
-	const float c_min_acceptable_tick_duration_ms= is_single_player_ ? 5.0f : (1000.0f / 59.0f);
-	if( tick_duration_ms < 0.9f * c_min_acceptable_tick_duration_ms )
-		SDL_Delay( static_cast<Uint32>( std::max( c_min_acceptable_tick_duration_ms - tick_duration_ms, 1.0 ) ) );
+	const int max_fps= settings_.GetOrSetInt( "r_max_fps", 0 );
+	const double min_acceptable_tick_duration_ms= ( max_fps > 0 ) ? 1000.0 / max_fps : 5.0;
+
+	// Try sleep just a bit, if we run too fast.
+	const auto sleep_time = static_cast<Uint32>( std::max( min_acceptable_tick_duration_ms - tick_duration_ms, 1.01 ) );
+	if( tick_duration_ms < 0.9 * min_acceptable_tick_duration_ms )
+		SDL_Delay( sleep_time );
 
 	loops_counter_.Tick();
 

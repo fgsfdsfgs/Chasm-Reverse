@@ -1093,14 +1093,14 @@ private:
 	{
 		enum : int
 		{
-			Renderer, DynamicLighting, Shadows, TexturesFiltering, MenuTexturesFiltering, HudTexturesFiltering, MSAA, ApplyNow, NumRows
+			Renderer, VSync, DynamicLighting, Shadows, TexturesFiltering, MenuTexturesFiltering, HudTexturesFiltering, MSAA, ApplyNow, NumRows
 		};
 	};
 	struct RowSoftware
 	{
 		enum : int
 		{
-			Renderer, PixelSize, Shadows, ApplyNow, NumRows
+			Renderer, VSync, PixelSize, Shadows, HwRefresh, ApplyNow, NumRows
 		};
 	};
 
@@ -1160,6 +1160,18 @@ void GraphicsMenu::Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw )
 		current_row_ == RowOpenGL::Renderer ? ITextDrawer::FontColor::Golden : ITextDrawer::FontColor::DarkYellow,
 		ITextDrawer::Alignment::Left );
 
+	text_draw.Print(
+		param_descr_x, y + RowOpenGL::VSync * y_step,
+		"VSync", scale,
+		current_row_ == RowOpenGL::VSync ? ITextDrawer::FontColor::YellowGreen : ITextDrawer::FontColor::White,
+		ITextDrawer::Alignment::Right );
+	text_draw.Print(
+		param_x, y + RowOpenGL::VSync * y_step,
+		settings_.GetOrSetBool( "r_gl_vsync", true ) ? g_on : g_off,
+		scale,
+		current_row_ == RowOpenGL::VSync ? ITextDrawer::FontColor::Golden : ITextDrawer::FontColor::DarkYellow,
+		ITextDrawer::Alignment::Left );
+
 	const auto draw_shadows_row=
 	[&]()
 	{
@@ -1201,6 +1213,18 @@ void GraphicsMenu::Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw )
 			pixel_size,
 			scale,
 			current_row_ == RowSoftware::PixelSize  ? ITextDrawer::FontColor::Golden : ITextDrawer::FontColor::DarkYellow,
+			ITextDrawer::Alignment::Left );
+
+		text_draw.Print(
+			param_descr_x, y + RowSoftware::HwRefresh * y_step,
+			"OpenGL refresh", scale,
+			current_row_ == RowSoftware::HwRefresh ? ITextDrawer::FontColor::YellowGreen : ITextDrawer::FontColor::White,
+			ITextDrawer::Alignment::Right );
+		text_draw.Print(
+			param_x, y + RowSoftware::HwRefresh * y_step,
+			settings_.GetOrSetBool( "r_software_use_gl_screen_update", true ) ? g_on : g_off,
+			scale,
+			current_row_ == RowSoftware::HwRefresh  ? ITextDrawer::FontColor::Golden : ITextDrawer::FontColor::DarkYellow,
 			ITextDrawer::Alignment::Left );
 
 		draw_shadows_row();
@@ -1307,15 +1331,21 @@ MenuBase* GraphicsMenu::ProcessEvent( const SystemEvent& event )
 
 		if( current_renderer_ == Renderer::Software )
 		{
-			if( current_row_ == RowSoftware::PixelSize &&
-				( key == KeyCode::Left || key == KeyCode::Right ) )
+			if( current_row_ == RowSoftware::PixelSize && ( key == KeyCode::Left || key == KeyCode::Right ) )
 			{
 				int delta= key == KeyCode::Left ? -1 : 1;
 				const int pixel_size= settings_.GetInt( SettingsKeys::software_scale, 1 ) + delta;
 				settings_.SetSetting( SettingsKeys::software_scale, std::max( 1, std::min( pixel_size, 5 ) ) );
 				PlayMenuSound( Sound::SoundId::MenuScroll );
 			}
-			if( current_row_ == RowSoftware::ApplyNow && key == KeyCode::Enter )
+			else if( current_row_ == RowSoftware::HwRefresh && ( key == KeyCode::Left || key == KeyCode::Right || key == KeyCode::Enter ) )
+			{
+				settings_.SetSetting(
+					"r_software_use_gl_screen_update",
+					! settings_.GetBool( "r_software_use_gl_screen_update", true ) );
+				PlayMenuSound( Sound::SoundId::MenuScroll );
+			}
+			else if( current_row_ == RowSoftware::ApplyNow && key == KeyCode::Enter )
 			{
 				PlayMenuSound( Sound::SoundId::MenuChange );
 				host_commands_.VidRestart();
@@ -1378,14 +1408,23 @@ MenuBase* GraphicsMenu::ProcessEvent( const SystemEvent& event )
 			}
 		}
 
-		// Shadows row is same for both renderers.
-		if( current_row_ == RowOpenGL::Shadows &&
-			( key == KeyCode::Left || key == KeyCode::Right || key == KeyCode::Enter ) )
+		// Shadows and VSync rows are same for both renderers.
+		if( key == KeyCode::Left || key == KeyCode::Right || key == KeyCode::Enter )
 		{
-			settings_.SetSetting(
-				SettingsKeys::shadows,
-				! settings_.GetBool( SettingsKeys::shadows, true ) );
-			PlayMenuSound( Sound::SoundId::MenuChange );
+			if( current_row_ == RowOpenGL::Shadows )
+			{
+				settings_.SetSetting(
+					SettingsKeys::shadows,
+					! settings_.GetBool( SettingsKeys::shadows, true ) );
+				PlayMenuSound( Sound::SoundId::MenuChange );
+			}
+			else if( current_row_ == RowOpenGL::VSync )
+			{
+				settings_.SetSetting(
+					"r_gl_vsync",
+					! settings_.GetBool( "r_gl_vsync", true ) );
+				PlayMenuSound( Sound::SoundId::MenuChange );
+			}
 		}
 	}
 
@@ -1552,7 +1591,10 @@ void VideoMenu::Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw )
 		const SystemWindow::VideoMode& video_mode= video_modes_[display_][resolution_];
 
 		char str[32];
-		std::snprintf( str, sizeof(str), "%d", video_mode.supported_frequencies[ frequency_ ] );
+		if( video_mode.supported_frequencies[ frequency_ ] )
+			std::snprintf( str, sizeof(str), "%d", video_mode.supported_frequencies[ frequency_ ] );
+		else
+			std::strcpy( str, "auto" );
 
 		text_draw.Print(
 			param_x, y + Row::Frequency * y_step,
@@ -1894,7 +1936,7 @@ void OptionsMenu::Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw )
 
 	text_draw.Print(
 		param_descr_x, y + Row::AlwaysRun * y_step,
-		"Alaways Run", scale,
+		"Always Run", scale,
 		ITextDrawer::FontColor::White, ITextDrawer::Alignment::Right );
 	text_draw.Print(
 		param_x, y + Row::AlwaysRun * y_step,
@@ -1914,7 +1956,7 @@ void OptionsMenu::Draw( IMenuDrawer& menu_drawer, ITextDrawer& text_draw )
 
 	text_draw.Print(
 		param_descr_x, y + Row::RevertMouse * y_step,
-		"Reverse Mouse", scale,
+		"Invert Mouse", scale,
 		ITextDrawer::FontColor::White, ITextDrawer::Alignment::Right );
 	text_draw.Print(
 		param_x, y + Row::RevertMouse * y_step,

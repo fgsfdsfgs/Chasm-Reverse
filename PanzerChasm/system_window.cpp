@@ -179,7 +179,7 @@ SystemWindow::SystemWindow( Settings& settings )
 	{
 		width = settings.GetInt( SettingsKeys::fullscreen_width , 640 );
 		height= settings.GetInt( SettingsKeys::fullscreen_height, 480 );
-		frequency= settings.GetInt( SettingsKeys::fullscreen_frequency, 60 );
+		frequency= settings.GetInt( SettingsKeys::fullscreen_frequency, 0 );
 		display= settings.GetInt( SettingsKeys::fullscreen_display, 0 );
 
 		if( displays_video_modes_.empty() )  // Abort fullscreen.
@@ -250,6 +250,9 @@ windowed:
 			scale--;
 
 		settings_.SetSetting( SettingsKeys::software_scale, scale );
+
+		// Don't use linear filtering for the scaling.
+		SDL_SetHint( "SDL_HINT_RENDER_SCALE_QUALITY", "0" );
 	}
 	pixel_size_= scale;
 
@@ -330,8 +333,9 @@ windowed:
 			if( !( SDL_BITSPERPIXEL( mode.format ) == 24 || SDL_BITSPERPIXEL( mode.format ) == 32 ) )
 				continue;
 
-			if( mode.w == int(width) && mode.h == int(height) && mode.refresh_rate == int(frequency) )
+			if( mode.w == int(width) && mode.h == int(height) && ( !frequency || mode.refresh_rate == int(frequency) ) )
 			{
+				mode.refresh_rate= int(frequency); // in case we want 0
 				const int result= SDL_SetWindowDisplayMode( window_, &mode );
 				if( result == 0 )
 					switched= true;
@@ -375,7 +379,7 @@ windowed:
 			0,
 			GL_RGBA, GL_UNSIGNED_BYTE, nullptr );
 		const GLint filtration=
-			( pixel_size_ > 1u && settings_.GetOrSetBool( "r_software_gl_update_smooth", true ) )
+			( pixel_size_ > 1u && settings_.GetOrSetBool( "r_software_gl_update_smooth", false ) )
 				? GL_LINEAR : GL_NEAREST;
 		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filtration );
 		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filtration );
@@ -746,6 +750,7 @@ void SystemWindow::GetVideoModes()
 			{
 				video_modes.emplace_back();
 				video_modes.back().size= size;
+				video_modes.back().supported_frequencies.emplace_back( 0 ); // allow auto rate
 			}
 
 			video_modes.back().supported_frequencies.emplace_back( mode.refresh_rate );
