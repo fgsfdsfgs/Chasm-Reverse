@@ -103,14 +103,21 @@ public:
 		std::memset( buf, 0, total_size * 2 );
 
 		Sint16* out= buf;
-		while( out < buf + total_size )
+		auto bytes_left= total_size * 2u;
+		while( bytes_left )
 		{
 			int bs;
-			auto ret= ov_read( &vf_, (char*)out, 4096, 0, 2, 1, &bs );
+			const unsigned int readsize= std::min( bytes_left, 4096u );
+			auto ret= ov_read( &vf_, (char*)out, readsize, 0, 2, 1, &bs );
 			if( ret <= 0 )
+			{
 				break;
+			}
 			else
+			{
 				out+= ret / 2;
+				bytes_left-= ret;
+			}
 		}
 
 		ov_clear( &vf_ );

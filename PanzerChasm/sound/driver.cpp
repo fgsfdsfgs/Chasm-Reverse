@@ -130,7 +130,7 @@ void Driver::FillAudioBuffer( SampleType* const buffer, const unsigned int sampl
 
 	for( Channel& channel : channels_ )
 	{
-		if( !channel.is_active || channel.src_sound_data == nullptr )
+		if( !channel.is_active || channel.src_sound_data == nullptr || channel.src_sound_data->data_ == nullptr )
 			continue;
 
 		// Fill destination audio buffer with iterpolation,

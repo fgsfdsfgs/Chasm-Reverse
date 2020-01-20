@@ -599,6 +599,8 @@ void SoundEngine::CalculateSourcesVolume()
 
 void SoundEngine::ForceStopAllChannels()
 {
+	driver_.LockChannels();
+
 	ambient_sound_source_= nullptr;
 	object_sound_source_= nullptr;
 
@@ -610,8 +612,6 @@ void SoundEngine::ForceStopAllChannels()
 
 	// Force stop all channels.
 	// This need, because driver life is longer, than life of sound data (global or map).
-
-	driver_.LockChannels();
 
 	Channels& channels= driver_.GetChannels();
 	for( Channel& channel : channels )
