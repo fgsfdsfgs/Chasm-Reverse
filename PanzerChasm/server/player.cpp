@@ -494,7 +494,7 @@ void Player::ResetTextMessagesFilter()
 	last_printed_text_message_time_= Time::FromSeconds(0);
 }
 
-bool Player::TryPickupItem( const unsigned int item_id, const Time current_time )
+bool Player::TryPickupItem( const unsigned int item_id, const Time current_time, const bool weaponstay )
 {
 	if( item_id >=  game_resources_->items_description.size() )
 		return false;
@@ -509,7 +509,7 @@ bool Player::TryPickupItem( const unsigned int item_id, const Time current_time 
 		const GameResources::WeaponDescription& weapon_description= game_resources_->weapons_description[ weapon_index ];
 
 		if( have_weapon_[ weapon_index ] &&
-			ammo_[ weapon_index ] >= static_cast<unsigned int>( weapon_description.limit ) )
+			( weaponstay || ammo_[ weapon_index ] >= static_cast<unsigned int>( weapon_description.limit ) ) )
 			return false;
 
 		have_weapon_[ weapon_index ]= true;
@@ -666,10 +666,7 @@ void Player::BuildStateMessage( Messages::PlayerState& out_state_message ) const
 	out_state_message.health= std::max( 0, health_ );
 	out_state_message.armor= armor_;
 
-	out_state_message.keys_mask= 0u;
-	if( have_red_key_   ) out_state_message.keys_mask|= 1u;
-	if( have_green_key_ ) out_state_message.keys_mask|= 2u;
-	if( have_blue_key_  ) out_state_message.keys_mask|= 4u;
+	out_state_message.keys_mask= GetKeysMask();
 
 	out_state_message.weapons_mask= 0u;
 	for( unsigned int i= 0u; i < GameConstants::weapon_count; i++ )
@@ -819,6 +816,13 @@ void Player::GiveAllKeys()
 	GiveBlueKey();
 }
 
+void Player::GiveKeysByMask( unsigned int mask )
+{
+	if( mask & 1u ) have_red_key_= true;
+	if( mask & 2u ) have_green_key_= true;
+	if( mask & 4u ) have_blue_key_= true;
+}
+
 bool Player::HaveRedKey() const
 {
 	return have_red_key_;
@@ -832,6 +836,15 @@ bool Player::HaveGreenKey() const
 bool Player::HaveBlueKey() const
 {
 	return have_blue_key_;
+}
+
+unsigned int Player::GetKeysMask() const
+{
+	unsigned int keys_mask= 0u;
+	if( have_red_key_   ) keys_mask|= 1u;
+	if( have_green_key_ ) keys_mask|= 2u;
+	if( have_blue_key_  ) keys_mask|= 4u;
+	return keys_mask;
 }
 
 unsigned int Player::CurrentWeaponIndex() const

@@ -296,6 +296,10 @@ EntityId Map::SpawnPlayer( const PlayerPtr& player )
 	player->SetRandomGenerator( random_generator_ );
 	player->ResetTextMessagesFilter();
 
+	// Restore all found keys in coop to prevent softlocks.
+	if( game_rules_ == GameRules::Cooperative )
+		player->GiveKeysByMask( found_keys_ );
+
 	const EntityId player_id= GetNextMonsterId();
 
 	players_.emplace( player_id, player );
@@ -936,10 +940,26 @@ void Map::ProcessPlayerPosition(
 
 				if( a_code == ACode::RedKey )
 					player.GiveRedKey();
-				if( a_code == ACode::GreenKey )
+				else if( a_code == ACode::GreenKey )
 					player.GiveGreenKey();
-				if( a_code == ACode::BlueKey )
+				else if( a_code == ACode::BlueKey )
 					player.GiveBlueKey();
+
+				if( game_rules_ == GameRules::Cooperative )
+				{
+					// Share keys in coop to prevent softlocks.
+					found_keys_|= player.GetKeysMask();
+					for( auto& plpair : players_ )
+					{
+						const auto plid= plpair.first;
+						auto pl= plpair.second;
+						if( plid != player_monster_id && found_keys_ != pl->GetKeysMask() )
+						{
+							pl->GiveKeysByMask( found_keys_ );
+							pl->AddItemPickupFlash();
+						}
+					}
+				}
 
 				PlayMonsterLinkedSound( player_monster_id, Sound::SoundId::GetKey );
 
@@ -955,13 +975,15 @@ void Map::ProcessPlayerPosition(
 		}
 	}
 
+	const bool weaponstay= ( game_rules_ == GameRules::Cooperative );
+
 	//Process items
 	for( Item& item : items_ )
 	{
 		if( !item.enabled )
 			continue;
 
-		if( item.picked_up && game_rules_ == GameRules::Deathmatch )
+		if( item.picked_up && game_rules_ != GameRules::SinglePlayer )
 		{
 			float respawn_time_s= GameConstants::ammo_respawn_time_s;
 			if( item.item_id < game_resources_->items_description.size() )
@@ -969,7 +991,7 @@ void Map::ProcessPlayerPosition(
 				const ACode a_code= static_cast<ACode>( game_resources_->items_description[ item.item_id ].a_code );
 
 				if( a_code >= ACode::Weapon_First && a_code <= ACode::Weapon_Last )
-					respawn_time_s= GameConstants::weapoons_respawn_time_s;
+					respawn_time_s= weaponstay ? 0.0f : GameConstants::weapoons_respawn_time_s;
 				else if( a_code >= ACode::Ammo_First && a_code <= ACode::Ammo_Last )
 					respawn_time_s= GameConstants::ammo_respawn_time_s;
 				else if( a_code == ACode::Item_chojin || a_code == ACode::Item_Shield || a_code == ACode::Item_Invisibility )
@@ -997,7 +1019,7 @@ void Map::ProcessPlayerPosition(
 		const float square_distance= ( item.pos.xy() - pos ).SquareLength();
 		if( square_distance <= GameConstants::player_interact_radius * GameConstants::player_interact_radius )
 		{
-			item.picked_up= player.TryPickupItem( item.item_id, current_time );
+			item.picked_up= player.TryPickupItem( item.item_id, current_time, weaponstay );
 			if( item.picked_up )
 			{
 				item.pick_up_time= current_time;

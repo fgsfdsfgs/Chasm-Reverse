@@ -362,6 +362,8 @@ private:
 
 	LightSourcesContainer light_sources_;
 
+	unsigned int found_keys_= 0u;
+
 	std::vector<Messages::MonsterBirth> monsters_birth_messages_;
 	std::vector<Messages::MonsterDeath> monsters_death_messages_;
 	std::vector<Messages::RocketBirth> rockets_birth_messages_;

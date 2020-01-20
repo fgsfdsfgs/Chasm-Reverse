@@ -58,7 +58,7 @@ public:
 	bool TryShowTextMessage( unsigned int text_message_number, Time current_time );
 	void ResetTextMessagesFilter();
 
-	bool TryPickupItem( unsigned int item_id, Time current_time );
+	bool TryPickupItem( unsigned int item_id, Time current_time, const bool weaponstay );
 	bool TryPickupBackpack( const Backpack& backpack );
 
 	void BuildPositionMessage( Messages::PlayerPosition& out_position_message ) const;
@@ -88,6 +88,9 @@ public:
 	bool HaveGreenKey() const;
 	bool HaveBlueKey() const;
 
+	void GiveKeysByMask( unsigned int mask );
+	unsigned int GetKeysMask() const;
+
 	unsigned int CurrentWeaponIndex() const;
 
 	void SetFrags( unsigned int frags );
@@ -95,11 +98,12 @@ public:
 
 	void SetName( std::string name );
 
+	void AddItemPickupFlash();
+
 private:
 	// Returns true, if jumped.
 	bool Move( Time time_delta );
 	void GenItemPickupMessage( unsigned char item_id );
-	void AddItemPickupFlash();
 
 private:
 	enum class State
