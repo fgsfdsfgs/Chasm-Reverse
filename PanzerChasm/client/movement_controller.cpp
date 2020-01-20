@@ -285,7 +285,7 @@ void MovementController::ControllerRotate( const int delta_x, const int delta_z 
 	{
 		const float c_acceleration= 0.25f;
 		const float c_max_acceleration_factor= 2.0f;
-		d_x_f= std::min( c_acceleration * std::sqrt(std::abs(d_x_f)), c_max_acceleration_factor ) * d_x_f;
+		d_x_f= std::min( c_acceleration * std::sqrt(std::abs(d_x_f)), c_max_acceleration_factor ) * d_x_f * 2.0f;
 		d_z_f= std::min( c_acceleration * std::sqrt(std::abs(d_z_f)), c_max_acceleration_factor ) * d_z_f;
 	}
 
@@ -293,7 +293,7 @@ void MovementController::ControllerRotate( const int delta_x, const int delta_z 
 	const float exp_sensetivity= std::exp( base_sensetivity * std::log(c_max_exp_sensetivity) ); // [ 1; c_max_exp_sensetivity ]
 
 	const float c_pix_scale= 1.0f / 1024.0f;
-	const float z_direction= settings_.GetOrSetBool( SettingsKeys::reverse_mouse ) ? -1.0f : +1.0f;
+	const float z_direction= settings_.GetOrSetBool( SettingsKeys::reverse_mouse ) ? -0.5f : +0.5f;
 
 	angle_.x-= exp_sensetivity * c_pix_scale * d_x_f * z_direction;
 	angle_.z-= exp_sensetivity * c_pix_scale * d_z_f * 0.5f;
