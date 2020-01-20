@@ -13,7 +13,7 @@ class ISoundData;
 
 struct Channel
 {
-	static constexpr unsigned int c_max_channels= 32u;
+	static constexpr unsigned int c_max_channels= 64u;
 	static constexpr unsigned int  c_left_channel_number= 0u;
 	static constexpr unsigned int c_right_channel_number= 1u;
 

@@ -191,10 +191,11 @@ void SoundEngine::SetMap( const MapDataConstPtr& map_data )
 
 				sound= LoadSound( sound_description.file_name, *game_resources_->vfs );
 			}
-
-			PlayCdTrack( map_data->map_cdtrack );
 		}
 	}
+
+	if( map_data != nullptr )
+		PlayCdTrack( map_data->map_cdtrack );
 
 	ambient_sound_processor_.SetMap( map_data );
 	objects_sounds_processor_.SetMap( map_data );
@@ -336,7 +337,7 @@ void SoundEngine::PlayOneTimeSound( const char* const sound_data_file )
 	{ // Stop channel, which can play now old OneTimeSoundSource.
 		driver_.LockChannels();
 		Channels& channels= driver_.GetChannels();
-		for( unsigned int i= 0u; i < Channel::c_max_channels; i++ )
+		for( unsigned int i= 1u; i < Channel::c_max_channels; i++ )
 		{
 			if( &sources_[i] == one_time_sound_source_ )
 			{
@@ -367,22 +368,13 @@ void SoundEngine::PlayCdTrack( unsigned int track )
 	if( music_source_ != nullptr ) // Free and kill old sound.
 		music_source_->is_free= true;
 
-	music_source_= GetFreeSource();
-	if( music_source_ == nullptr )
-		return;
+	music_source_= &sources_[0];
 
 	{ // Stop old music
 		driver_.LockChannels();
 		Channels& channels= driver_.GetChannels();
-		for( unsigned int i= 0u; i < Channel::c_max_channels; i++ )
-		{
-			if( &sources_[i] == music_source_ )
-			{
-				channels[i].is_active= false;
-				channels[i].src_sound_data= nullptr;
-				break;
-			}
-		}
+		channels[0].is_active= false;
+		channels[0].src_sound_data= nullptr;
 		driver_.UnlockChannels();
 	}
 
@@ -398,10 +390,11 @@ void SoundEngine::PlayCdTrack( unsigned int track )
 
 SoundEngine::Source* SoundEngine::GetFreeSource()
 {
-	for( Source& s : sources_ )
+	// source 0 is strictly for music
+	for( int i= 1; i < Channel::c_max_channels; ++i )
 	{
-		if( s.is_free )
-			return &s;
+		if( sources_[i].is_free )
+			return sources_ + i;
 	}
 
 	return nullptr;
@@ -599,19 +592,10 @@ void SoundEngine::CalculateSourcesVolume()
 
 void SoundEngine::ForceStopAllChannels()
 {
-	driver_.LockChannels();
-
-	ambient_sound_source_= nullptr;
-	object_sound_source_= nullptr;
-
-	one_time_sound_source_data_= nullptr;
-	one_time_sound_source_= nullptr;
-
-	music_source_data_= nullptr;
-	music_source_= nullptr;
-
 	// Force stop all channels.
 	// This need, because driver life is longer, than life of sound data (global or map).
+
+	driver_.LockChannels();
 
 	Channels& channels= driver_.GetChannels();
 	for( Channel& channel : channels )
@@ -621,6 +605,15 @@ void SoundEngine::ForceStopAllChannels()
 
 	for( Source& source : sources_ )
 		source.is_free= true;
+
+	ambient_sound_source_= nullptr;
+	object_sound_source_= nullptr;
+
+	one_time_sound_source_data_= nullptr;
+	one_time_sound_source_= nullptr;
+
+	music_source_data_= nullptr;
+	music_source_= nullptr;
 }
 
 } // namespace Sound
