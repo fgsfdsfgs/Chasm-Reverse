@@ -188,6 +188,7 @@ public:
 	virtual MenuBase* ProcessEvent( const SystemEvent& event ) override;
 
 private:
+	Settings& settings_;
 	HostCommands& host_commands_;
 	int current_row_= 0;
 
@@ -197,10 +198,11 @@ private:
 
 NetworkConnectMenu::NetworkConnectMenu( MenuBase* parent, const Sound::SoundEnginePtr& sound_engine, HostCommands& host_commands )
 	: MenuBase( parent, sound_engine )
-	, host_commands_(host_commands)
+	, host_commands_( host_commands )
+	, settings_( host_commands.GetSettings() )
 {
-	std::snprintf( values_[0], c_value_max_size, "%s", "127.0.0.1" );
-	std::snprintf( values_[1], c_value_max_size, "%d", Net::c_default_server_tcp_port );
+	std::snprintf( values_[0], c_value_max_size, "%s", settings_.GetOrSetString( "cl_connect_address", "127.0.0.1" ) );
+	std::snprintf( values_[1], c_value_max_size, "%d", settings_.GetOrSetInt( "cl_connect_port", Net::c_default_server_tcp_port ) );
 }
 
 NetworkConnectMenu::~NetworkConnectMenu()
@@ -290,6 +292,8 @@ MenuBase* NetworkConnectMenu::ProcessEvent( const SystemEvent& event )
 			PlayMenuSound( Sound::SoundId::MenuSelect );
 
 			const std::string full_address_str= std::string( values_[0] ) + ":" + values_[1];
+			settings_.SetSetting( "cl_connect_address", values_[0] );
+			settings_.SetSetting( "cl_connect_port", std::atoi( values_[1] ) );
 			host_commands_.ConnectToServer( full_address_str.c_str() );
 
 			return nullptr;
@@ -324,6 +328,7 @@ private:
 	const char* GetDifficultyStr();
 
 private:
+	Settings& settings_;
 	HostCommands& host_commands_;
 
 	struct Row
@@ -348,10 +353,11 @@ private:
 
 NetworkCreateServerMenu::NetworkCreateServerMenu( MenuBase* parent, const Sound::SoundEnginePtr& sound_engine, HostCommands& host_commands )
 	: MenuBase( parent, sound_engine )
-	, host_commands_(host_commands)
+	, host_commands_( host_commands )
+	, settings_( host_commands.GetSettings() )
 {
-	std::snprintf( tcp_port_, sizeof(tcp_port_), "%d", Net::c_default_server_tcp_port );
-	std::snprintf( base_udp_port_, sizeof(base_udp_port_), "%d", Net::c_default_server_udp_base_port );
+	std::snprintf( tcp_port_, sizeof(tcp_port_), "%d", settings_.GetOrSetInt( "sv_tcp_port", Net::c_default_server_tcp_port ) );
+	std::snprintf( base_udp_port_, sizeof(base_udp_port_), "%d", settings_.GetOrSetInt( "sv_udp_port", Net::c_default_server_udp_base_port ) );
 
 	map_info_= host_commands_.GetMapLoader()->GetNextMapInfo(0u);
 }
@@ -526,13 +532,18 @@ MenuBase* NetworkCreateServerMenu::ProcessEvent( const SystemEvent& event )
 		{
 			PlayMenuSound( Sound::SoundId::MenuSelect );
 
+			const int tcp_port_i= std::atoi( tcp_port_ );
+			const int base_udp_port_i= std::atoi( base_udp_port_ );
+			settings_.SetSetting( "sv_tcp_port", tcp_port_i );
+			settings_.SetSetting( "sv_udp_port", base_udp_port_i );
+
 			host_commands_.StartServer(
 				map_info_.number,
 				static_cast<DifficultyType>( 1u << difficulty_ ),
 				game_rules_,
 				dedicated_,
-				std::atoi( tcp_port_ ),
-				std::atoi( base_udp_port_ ) );
+				tcp_port_i,
+				base_udp_port_i );
 
 			return nullptr;
 		}
