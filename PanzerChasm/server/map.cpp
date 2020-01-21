@@ -1064,6 +1064,22 @@ void Map::ProcessPlayerPosition(
 		{
 			if( player.TryPickupBackpack( backpack ) )
 			{
+				if( game_rules_ == GameRules::Cooperative )
+				{
+					// Share keys in coop to prevent softlocks.
+					found_keys_|= player.GetKeysMask();
+					for( auto& plpair : players_ )
+					{
+						const auto plid= plpair.first;
+						auto pl= plpair.second;
+						if( plid != player_monster_id && found_keys_ != pl->GetKeysMask() )
+						{
+							pl->GiveKeysByMask( found_keys_ );
+							pl->AddItemPickupFlash();
+						}
+					}
+				}
+
 				PlayMonsterLinkedSound( player_monster_id, Sound::SoundId::ItemUp );
 
 				dynamic_items_death_messages_.emplace_back();

@@ -99,6 +99,8 @@ public:
 
 	void ClearUpdateEvents();
 
+	GameRules GetGameRules() const { return game_rules_; }
+
 private:
 	struct RotatingLightEffect;
 
