@@ -37,6 +37,9 @@ Driver::Driver()
 {
 	SDL_InitSubSystem( SDL_INIT_AUDIO );
 
+	// redetect stuff
+	SDL_GetNumAudioDevices( 0 );
+
 	SDL_AudioSpec requested_format;
 	SDL_AudioSpec obtained_format;
 
@@ -49,31 +52,19 @@ Driver::Driver()
 	// ~ 1 callback call per two frames (60fps)
 	requested_format.samples= NearestPowerOfTwoFloor( requested_format.freq / 30 );
 
-	int device_count= SDL_GetNumAudioDevices(0);
-	// Can't get explicit devices list. Trying to use first device.
-	if( device_count == -1 )
-		device_count= 1;
+	const SDL_AudioDeviceID device_id=
+		SDL_OpenAudioDevice( nullptr, 0, &requested_format, &obtained_format, 0 );
 
-	for( int i= 0; i < device_count; i++ )
+	if( device_id &&
+		obtained_format.channels == requested_format.channels &&
+		obtained_format.format   == requested_format.format )
 	{
-		const char* const device_name= SDL_GetAudioDeviceName( i, 0 );
-
-		const SDL_AudioDeviceID device_id=
-			SDL_OpenAudioDevice( device_name, 0, &requested_format, &obtained_format, 0 );
-
-		if( device_id >= g_first_valid_device_id &&
-			obtained_format.channels == requested_format.channels &&
-			obtained_format.format   == requested_format.format )
-		{
-			device_id_= device_id;
-			Log::Info( "Open audio device: ", device_name );
-			break;
-		}
+		device_id_= device_id;
+		Log::Info( "Opened default audio device" );
 	}
-
-	if( device_id_ < g_first_valid_device_id )
+	else
 	{
-		Log::FatalError( "Can not open any audio device" );
+		Log::FatalError( "Can not open default audio device: ", SDL_GetError() );
 		return;
 	}
 
@@ -82,7 +73,7 @@ Driver::Driver()
 	mix_buffer_.resize( obtained_format.samples * g_left_and_right );
 
 	// Run
-	SDL_PauseAudioDevice( device_id_ , 0 );
+	SDL_PauseAudioDevice( device_id_, 0 );
 }
 
 Driver::~Driver()
