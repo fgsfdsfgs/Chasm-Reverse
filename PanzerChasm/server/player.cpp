@@ -330,6 +330,13 @@ void Player::Hit(
 	if( state_ != State::Alive )
 		return;
 
+	const Map::PlayersContainer& players= map.GetPlayers();
+	const auto opponent_it= players.find( opponent_id );
+	const bool by_player= ( opponent_it != players.end() );
+
+	if( by_player && map.GetGameRules() == GameRules::Cooperative && opponent_id != monster_id )
+		return; // No friendly fire in coop
+
 	// Armor absorbess all damage and gives 1/4 of absorbed damage to health.
 	int armor_damage= damage;
 	if( armor_damage > armor_ )
@@ -353,14 +360,16 @@ void Player::Hit(
 
 		if( opponent_id != monster_id ) // If it is not suicide.
 		{
-			const Map::PlayersContainer& players= map.GetPlayers();
-			const auto opponent_it= players.find( opponent_id );
-			if( opponent_it != players.end() )
+			if( by_player )
 			{
 				Player& opponent= *opponent_it->second;
 				opponent.frags_++;
 
 				map.AddTextMessage( ( "\"" + opponent.name_ + "\" killed \"" + name_ + "\"" ).c_str() );
+			}
+			else
+			{
+				map.AddTextMessage( ( "\"" + name_ + "\" was killed in action" ).c_str() );
 			}
 		}
 		else
