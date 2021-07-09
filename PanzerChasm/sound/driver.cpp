@@ -217,9 +217,9 @@ void Driver::FillAudioBuffer( SampleType* const buffer, const unsigned int sampl
 						const unsigned int sample_pos_l= sample_coord * 2u;
 						const unsigned int sample_pos_r= sample_pos_l + 2u;
 
-						const int signed_sample_l=
+						const long long int signed_sample_l=
 							int( src[ sample_pos_l+0u ] * ( g_frac - part ) ) + int( src[ sample_pos_r+0u ] * part );
-						const int signed_sample_r=
+						const long long int signed_sample_r=
 							int( src[ sample_pos_l+1u ] * ( g_frac - part ) ) + int( src[ sample_pos_r+1u ] * part );
 
 						dst[ i * 2u      ]+= ( signed_sample_l * volume[0] ) >> ( int(g_frac_bits) + g_volume_bits );
