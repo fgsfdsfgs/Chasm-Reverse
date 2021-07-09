@@ -303,7 +303,7 @@ void Monster::Tick(
 				distance_for_melee_attack <= description.attack_radius  )
 			{
 				target->Hit(
-					description.kick, ( target->Position().xy() - pos_.xy() ), monster_id,
+					description.kick, target->Position(), ( target->Position().xy() - pos_.xy() ), monster_id,
 					map,
 					target_.monster_id, current_time );
 
@@ -388,6 +388,7 @@ void Monster::Tick(
 
 void Monster::Hit(
 	const int damage,
+	const m_Vec3& hit_position,
 	const m_Vec2& hit_direction,
 	const EntityId opponent_id,
 	Map& map,
@@ -440,59 +441,68 @@ void Monster::Hit(
 				{
 					// Try select pain animation.
 					int possible_animations[4];
-					unsigned int possible_animation_count= 0u;
 					const int pain_animation= GetAnyAnimation( { AnimationId::Pain0, AnimationId::Pain1 } );
 					const int  left_hand_lost_animation= GetAnimation( AnimationId:: LeftHandLost );
 					const int right_hand_lost_animation= GetAnimation( AnimationId::RightHandLost );
 					const int head_lost_animation= GetAnimation( AnimationId::HeadLost );
-
-					if( pain_animation >= 0 )
+					float closest_distance_so_far = 0.0f;
+					int closest_animation_so_far = -1;
+					m_Vec3 head_pos = GetBodyPartPosition( BodyPartSubmodelId::Head );
+					
+					if ( have_left_hand_ && left_hand_lost_animation >= 0 )
 					{
-						possible_animations[ possible_animation_count ]= pain_animation;
-						possible_animation_count++;
+						closest_distance_so_far = ( hit_position - GetBodyPartPosition( BodyPartSubmodelId::LeftHand ) ).Length();
+						closest_animation_so_far = left_hand_lost_animation;
 					}
-					if(  have_left_hand_ &&  left_hand_lost_animation >= 0 )
+					
+					if ( have_right_hand_ && right_hand_lost_animation >= 0 )
 					{
-						possible_animations[ possible_animation_count ]=  left_hand_lost_animation;
-						possible_animation_count++;
+						float distance = ( hit_position - GetBodyPartPosition( BodyPartSubmodelId::RightHand ) ).Length();
+						if ( closest_animation_so_far == -1 || closest_distance_so_far > distance )
+						{
+							closest_distance_so_far = distance;
+							closest_animation_so_far = right_hand_lost_animation;
+						}
 					}
-					if( have_right_hand_ && right_hand_lost_animation >= 0 )
+					
+					if ( have_head_ && head_lost_animation >= 0 )
 					{
-						possible_animations[ possible_animation_count ]= right_hand_lost_animation;
-						possible_animation_count++;
+						float distance = ( hit_position - GetBodyPartPosition( BodyPartSubmodelId::Head ) ).Length();
+						if ( closest_animation_so_far == -1 || closest_distance_so_far > distance )
+						{
+							closest_distance_so_far = distance;
+							closest_animation_so_far = head_lost_animation;
+						}
 					}
-					if( have_head_ && head_lost_animation >= 0 )
+					
+					if ( pain_animation >= 0 && ( random_generator_->Rand() % 100 ) < 15 )
 					{
-						possible_animations[ possible_animation_count ]= head_lost_animation;
-						possible_animation_count++;
+						closest_animation_so_far = pain_animation;
 					}
-
-					if( possible_animation_count > 0 )
+					
+					if ( closest_animation_so_far >= 0 )
 					{
-						const int selected_animation= possible_animations[ random_generator_->Rand() % possible_animation_count ];
-						if( selected_animation == left_hand_lost_animation  )
+						if( closest_animation_so_far == left_hand_lost_animation  )
 						{
 							have_left_hand_ = false;
 							SpawnBodyPart( map, BodyPartSubmodelId:: LeftHand );
 						}
-						if( selected_animation == right_hand_lost_animation )
+						if( closest_animation_so_far == right_hand_lost_animation )
 						{
 							have_right_hand_= false;
 							SpawnBodyPart( map, BodyPartSubmodelId::RightHand );
 						}
-						if( selected_animation == head_lost_animation )
+						if( closest_animation_so_far == head_lost_animation )
 						{
 							have_head_= false;
 							SpawnBodyPart( map, BodyPartSubmodelId::Head );
 						}
 
 						state_= State::PainShock;
-						current_animation_= static_cast<unsigned int>( selected_animation );
+						current_animation_= static_cast<unsigned int>( closest_animation_so_far );
 						current_animation_start_time_= current_time;
 						map.PlayMonsterSound( monster_id, Sound::MonsterSoundId::Pain );
 					}
-					else
-					{}// No pain - no gain
 				}
 			}
 		}
@@ -887,7 +897,7 @@ int Monster::SelectMeleeAttackAnimation()
 	return possible_animations[ random_generator_->Rand() % possible_animation_count ];
 }
 
-void Monster::SpawnBodyPart( Map& map, const unsigned char part_id )
+m_Vec3 Monster::GetBodyPartPosition( unsigned char part_id )
 {
 	/* Select position for parts spawn.
 	 * Each part must be spawned at specific point of monster body.
@@ -899,7 +909,7 @@ void Monster::SpawnBodyPart( Map& map, const unsigned char part_id )
 	const float c_relative_hands_level= 0.65f;
 	const float c_hands_radius= 0.2f;
 
-	const m_Vec2 z_minmax= GetZMinMax();
+	const m_Vec2 z_minmax = GetZMinMax();
 	m_Vec3 pos= pos_;
 
 	switch( part_id )
@@ -924,7 +934,13 @@ void Monster::SpawnBodyPart( Map& map, const unsigned char part_id )
 		PC_ASSERT(false);
 		break;
 	};
+	
+	return pos;
+}
 
+void Monster::SpawnBodyPart( Map& map, const unsigned char part_id )
+{
+	m_Vec3 pos = GetBodyPartPosition( part_id );
 	map.SpawnMonsterBodyPart( monster_id_, part_id, pos, angle_ );
 }
 

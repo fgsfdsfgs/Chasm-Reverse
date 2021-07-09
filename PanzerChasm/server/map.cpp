@@ -1518,6 +1518,7 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 				PC_ASSERT( monster != nullptr );
 				monster->Hit(
 					GetRocketDamage(rocket_description.power),
+					hit_result.pos,
 					rocket.normalized_direction.xy(), rocket.owner_id,
 					*this,
 					hit_result.object_index ,current_time );
@@ -1704,7 +1705,9 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 				if( !( monster.Position().z > float(cell.z_top) / 64u ||
 					   monster.Position().z + GameConstants::player_height < float(cell.z_bottom) / 64u ) )
 					monster.Hit(
-						int( cell.damage * death_ticks ), m_Vec2( 0.0f, 0.0f ), 0u,
+						int( cell.damage * death_ticks ), 
+						monster.Position(),
+						m_Vec2( 0.0f, 0.0f ), 0u,
 						*this,
 						monster_value.first, current_time );
 			}
@@ -1798,6 +1801,7 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 			if( monster.GetMovementRestriction().MovementIsBlocked( push_dir ) )
 				monster.Hit(
 					static_cast<int>(GameConstants::mortal_walls_damage_per_second * last_tick_delta_s),
+					monster.Position(),
 					m_Vec2( 0.0f, 0.0f ), 0,
 					*this,
 					monster_value.first, current_time );
@@ -1855,6 +1859,7 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 				if( monster.GetMovementRestriction().MovementIsBlocked( normal ) )
 					monster.Hit(
 						static_cast<int>(GameConstants::mortal_walls_damage_per_second * last_tick_delta_s),
+						monster.Position(),
 						m_Vec2( 0.0f, 0.0f ), 0,
 						*this,
 						monster_value.first, current_time );
@@ -2761,7 +2766,9 @@ void Map::DoExplosionDamage(
 		const int damage= distance_to_damage(distance);
 		if( damage > 0 )
 			monster.Hit(
-				damage, ( monster.Position().xy() - explosion_center.xy() ), explosion_owner_monster_id,
+				damage, 
+				monster.Position(),
+				( monster.Position().xy() - explosion_center.xy() ), explosion_owner_monster_id,
 				*this,
 				monster_value.first, current_time );
 	}

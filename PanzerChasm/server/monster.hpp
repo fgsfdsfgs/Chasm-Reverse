@@ -39,6 +39,7 @@ public:
 
 	virtual void Hit(
 		int damage,
+		const m_Vec3& hit_position,
 		const m_Vec2& hit_direction,
 		EntityId opponent_id,
 		Map& map,
@@ -85,6 +86,7 @@ private:
 	void RotateToTarget( float time_delta_s );
 	bool SelectTarget( const Map& map ); // returns true, if selected
 	int SelectMeleeAttackAnimation();
+	m_Vec3 GetBodyPartPosition( unsigned char part_id );
 	void SpawnBodyPart( Map& map, unsigned char part_id );
 
 private:

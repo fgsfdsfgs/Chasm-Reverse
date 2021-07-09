@@ -54,6 +54,7 @@ public:
 
 	virtual void Hit(
 		int damage,
+		const m_Vec3& hit_position,
 		const m_Vec2& hit_direction,
 		EntityId opponent_id,
 		Map& map,

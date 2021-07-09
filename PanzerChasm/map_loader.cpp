@@ -720,7 +720,7 @@ void MapLoader::LoadLevelScripts( const Vfs::FileContent& process_file, MapData&
 			if( !line_stream.fail() && message_number != 0 )
 				LoadMessage( message_number, stream, map_data );
 		}
-		else if( std::strncmp( thing_type, "#proc", std::strlen("#proc" ) ) == 0 )
+		else if( StringEquals( std::string(thing_type).substr(0, 5).c_str(), "#proc" ) )
 		{
 			const unsigned int c_max_procedure_number= 1000;
 
