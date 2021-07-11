@@ -99,6 +99,8 @@ public:
 
 	void SetName( std::string name );
 
+	void SetQuake( const Time current_time, int quake_power );
+
 	void AddItemPickupFlash();
 
 private:
@@ -173,6 +175,10 @@ private:
 	Time chojin_take_time_= Time::FromSeconds(0);
 	bool have_chojin_= false;
 	bool chojin_visible_in_this_moment_= false;
+
+	Time quake_end_time_= Time::FromSeconds(0);
+	unsigned int quake_max_power_= 0;
+	unsigned int quake_power_= 0;
 
 	Time last_pain_sound_time_= Time::FromSeconds(0);
 	Time last_step_sound_time_= Time::FromSeconds(0);

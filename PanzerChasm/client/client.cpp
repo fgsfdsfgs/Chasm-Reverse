@@ -55,6 +55,7 @@ Client::Client(
 	, minimap_drawer_( drawers_factory.CreateMinimapDrawer() )
 	, weapon_state_( game_resources )
 	, hud_drawer_( drawers_factory.CreateHUDDrawer( shared_drawers ) )
+	, random_generator_( std::make_shared<LongRand>() )
 {
 	PC_ASSERT( game_resources_ != nullptr );
 	PC_ASSERT( map_loader_ != nullptr );
@@ -323,6 +324,17 @@ void Client::Loop( const InputState& input_state, const bool paused )
 	if( player_state_.ammo[ requested_weapon_index_ ] == 0u )
 		TrySwitchWeaponOnOutOfAmmo();
 
+	quake_offset_= m_Vec3( 0.0f, 0.0f, 0.0f );
+	if( player_state_.quake_power )
+	{
+		const float dz= float(player_state_.quake_power) * GameConstants::quake_pos_scale;
+		const float dxy= dz * 0.4f;
+		// In the original the screen doesn't shake side-to-side as much as it does up and down.
+		// TODO - Get precise values
+		quake_offset_+=
+			m_Vec3( random_generator_->RandValue(dxy), random_generator_->RandValue(dxy), random_generator_->RandValue(dz) );
+	}
+
 	if( map_state_ != nullptr )
 	{
 		map_state_->Tick( current_tick_time_ );
@@ -389,6 +401,7 @@ void Client::Draw()
 			pos.z+= GameConstants::player_eyes_level + z_shift;
 		else
 			pos.z= std::min( pos.z + GameConstants::player_deathcam_level, GameConstants::walls_height );
+		pos+= quake_offset_;
 
 		m_Mat4 view_rotation_and_projection_matrix, projection_matrix;
 		camera_controller_.GetViewRotationAndProjectionMatrix( view_rotation_and_projection_matrix );
@@ -410,7 +423,7 @@ void Client::Draw()
 			const float c_weapon_shift_scale= 0.25f;
 			const float c_weapon_angle_scale= 0.75f;
 			const float weapon_angle_for_shift= camera_controller_.GetViewAngleX() *  c_weapon_angle_scale;
-			const float weapon_shift_z= c_weapon_shift_scale * z_shift * std::cos( weapon_angle_for_shift );
+			const float weapon_shift_z= c_weapon_shift_scale * z_shift * std::cos( weapon_angle_for_shift ) + quake_offset_.z * 0.3f;
 			const float weapon_shift_y= c_weapon_shift_scale * z_shift * std::sin( weapon_angle_for_shift );
 
 			m_Mat4 weapon_shift_matrix;

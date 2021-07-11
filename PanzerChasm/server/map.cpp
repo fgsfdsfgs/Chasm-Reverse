@@ -110,6 +110,7 @@ Map::Map(
 
 	std::memset( wind_field_, 0, sizeof(wind_field_) );
 	std::memset( death_field_, 0, sizeof(death_field_) );
+	std::memset( quake_field_, 0, sizeof(quake_field_) );
 
 	procedures_.resize( map_data_->procedures.size() );
 	for( unsigned int p= 0u; p < procedures_.size(); p++ )
@@ -1687,7 +1688,7 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 			}
 		}
 
-		// Process death for monster.
+		// Process death cells for everyone and quake cells for players.
 		// TODO - make death zone intersection calculation correct, like with wind zones.
 		const int monster_x= static_cast<int>( monster.Position().x );
 		const int monster_y= static_cast<int>( monster.Position().y );
@@ -1697,10 +1698,12 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 			const DamageFiledCell& cell= death_field_[ monster_x + monster_y * int(MapData::c_map_size) ];
 			if( cell.damage > 0u && death_ticks > 0u )
 			{
-				// It looks, like damage field with "z_bottom" == -1 does not damage players.
-				if( monster.MonsterId() == 0u && cell.z_bottom < 0 )
-					continue;
-
+				if( monster.MonsterId() == 0u )
+				{
+					// It looks, like damage field with "z_bottom" == -1 does not damage players.
+					if( cell.z_bottom < 0 )
+						continue;
+				}
 				// TODO - select correct monster height
 				if( !( monster.Position().z > float(cell.z_top) / 64u ||
 					   monster.Position().z + GameConstants::player_height < float(cell.z_bottom) / 64u ) )
@@ -1710,6 +1713,13 @@ void Map::Tick( const Time current_time, const Time last_tick_delta )
 						m_Vec2( 0.0f, 0.0f ), 0u,
 						*this,
 						monster_value.first, current_time );
+			}
+			// If this is a player, apply quake if there's any in the cell.
+			if( monster.MonsterId() == 0u )
+			{
+				const int quake= quake_field_[ monster_x + monster_y * int(MapData::c_map_size) ];
+				if( quake )
+					static_cast<Player&>(monster).SetQuake( current_time, quake );
 			}
 		}
 	}
@@ -2426,6 +2436,8 @@ void Map::DoProcedureImmediateCommands( const MapData::Procedure& procedure, con
 		}
 		else if( command.id == Command::Wind )
 			ProcessWind( command, true );
+		else if( command.id == Command::Quake )
+			ProcessQuake( command, true );
 		else if( command.id == Command::Death )
 			ProcessDeathZone( command, true );
 		else if( command.id == Command::Explode )
@@ -2520,6 +2532,8 @@ void Map::DoProcedureDeactivationCommands( const MapData::Procedure& procedure )
 			ProcessWind( command, false );
 		else if( command.id == Command::Death )
 			ProcessDeathZone( command, false );
+		else if( command.id == Command::Quake )
+			ProcessQuake( command, false );
 	}
 }
 
@@ -2681,6 +2695,23 @@ void Map::ProcessWind( const MapData::Procedure::ActionCommand& command, bool ac
 		}
 		else
 			cell[0]= cell[1]= 0;
+	}
+}
+
+void Map::ProcessQuake( const MapData::Procedure::ActionCommand& command, bool activate )
+{
+	PC_ASSERT( command.id == MapData::Procedure::ActionCommandId::Quake );
+
+	const unsigned int x0= static_cast<unsigned int>( command.args[0] );
+	const unsigned int y0= static_cast<unsigned int>( command.args[1] );
+	const unsigned int x1= static_cast<unsigned int>( command.args[2] );
+	const unsigned int y1= static_cast<unsigned int>( command.args[3] );
+	const int pow= static_cast<int>( command.args[4] );
+
+	for( unsigned int y= y0; y <= y1 && y < MapData::c_map_size; y++ )
+	for( unsigned int x= x0; x <= x1 && x < MapData::c_map_size; x++ )
+	{
+		quake_field_[ x + y * MapData::c_map_size ] = activate ? pow : 0;
 	}
 }
 

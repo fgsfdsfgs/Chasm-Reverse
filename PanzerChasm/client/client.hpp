@@ -108,6 +108,7 @@ private:
 	bool paused_= false;
 
 	m_Vec3 player_position_;
+	m_Vec3 quake_offset_;
 	EntityId player_monster_id_= 0u;
 	Messages::PlayerState player_state_;
 	Messages::ServerState server_state_;
@@ -129,6 +130,8 @@ private:
 	bool shoot_pressed_= false;
 
 	IHudDrawerPtr hud_drawer_;
+
+	LongRandPtr random_generator_;
 
 	std::unique_ptr<CutscenePlayer> cutscene_player_;
 };

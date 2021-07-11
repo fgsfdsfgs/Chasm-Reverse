@@ -115,6 +115,7 @@ struct PlayerState : public MessageBase
 	unsigned char keys_mask; // Bits 0 - red, 1 - green, 2 - blue.
 	WeaponsMaskType weapons_mask;
 	unsigned char index; // in ServerState message players list.
+	unsigned int quake_power;
 	bool is_invisible : 1;
 	bool show_shield : 1;
 	bool show_chojin : 1;

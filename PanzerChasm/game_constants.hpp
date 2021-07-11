@@ -56,6 +56,12 @@ constexpr float powerups_respawn_time_s= 120.0f;
 constexpr float death_ticks_per_second= 3.0f;
 constexpr float mortal_walls_damage_per_second= 750.0f;
 
+// TODO - actually figure out the precise values.
+constexpr float quake_ticks_per_second= 100.0f;
+constexpr float quake_pos_scale= 0.03f / 256.0f;
+constexpr int quake_min_power= 256;
+constexpr int quake_max_power= 1024;
+
 const float player_max_speed= 5.0f; // Max speed, which player can reach himself.
 const float player_max_absolute_speed= 15.0f; // Maximum speed of player.
 

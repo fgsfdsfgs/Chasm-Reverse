@@ -118,6 +118,16 @@ void Player::Tick(
 	else
 		chojin_visible_in_this_moment_= false;
 
+	// Ease out from the quake if it's happening
+	if( quake_power_ )
+	{
+		const float dt = ( quake_end_time_ - current_time ).ToSeconds();
+		if( dt <= 0.0f )
+			quake_power_= 0;
+		else if( dt <= 1.0f )
+			quake_power_= dt * float(quake_max_power_);
+	}
+
 	// Process animations.
 	if( state_ == State::Alive )
 	{
@@ -684,6 +694,7 @@ void Player::BuildStateMessage( Messages::PlayerState& out_state_message ) const
 		if( have_weapon_[i] )
 			out_state_message.weapons_mask|= 1 << i;
 
+	out_state_message.quake_power= quake_power_;
 	out_state_message.is_invisible= inviible_in_this_moment_;
 	out_state_message.show_shield= shield_visible_in_this_moment_;
 	out_state_message.show_chojin= chojin_visible_in_this_moment_;
@@ -876,6 +887,18 @@ unsigned int Player::GetFrags() const
 void Player::SetName( std::string name )
 {
 	name_= std::move(name);
+}
+
+void Player::SetQuake( const Time current_time, int quake_power )
+{
+	// Matches game behavior?
+	if( quake_power < 0 || quake_power > 32767 )
+		quake_power= 0;
+	// Cap the magnitude, but calculate the time using the uncapped value.
+	quake_power_= std::min( std::max( quake_power, GameConstants::quake_min_power ), GameConstants::quake_max_power);
+	quake_max_power_= quake_power_;
+	quake_end_time_= current_time +
+		Time::FromSeconds( float(quake_power) / GameConstants::quake_ticks_per_second );
 }
 
 bool Player::Move( const Time time_delta )

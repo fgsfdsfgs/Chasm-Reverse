@@ -293,6 +293,7 @@ private:
 	void ReturnProcedure( unsigned int procedure_number, Time current_time );
 
 	void ProcessWind( const MapData::Procedure::ActionCommand& command, bool activate );
+	void ProcessQuake( const MapData::Procedure::ActionCommand& command, bool activate );
 	void ProcessDeathZone( const MapData::Procedure::ActionCommand& command, bool activate );
 	void DestroyModel( unsigned int model_index );
 	void DoExplosionDamage(
@@ -387,6 +388,7 @@ private:
 
 	// TODO - compress this fields
 	char wind_field_[ MapData::c_map_size * MapData::c_map_size ][2];
+	int quake_field_[ MapData::c_map_size * MapData::c_map_size ];
 	DamageFiledCell death_field_[ MapData::c_map_size * MapData::c_map_size ];
 
 	const CollisionIndex collision_index_;

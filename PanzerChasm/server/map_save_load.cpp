@@ -175,6 +175,14 @@ void Map::Save( SaveStream& save_stream ) const
 		save_stream.WriteInt8( damage_field_cell.z_bottom );
 		save_stream.WriteInt8( damage_field_cell.z_top );
 	}
+
+	// Quake field not really important enough to save, leaving this out for compatibility for now
+	/*
+	for ( const int quake_field_cell : quake_field_ )
+	{
+		save_stream.WriteInt32( quake_field_cell );
+	}
+	*/
 }
 
 Map::Map(
